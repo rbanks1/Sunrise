@@ -1,16 +1,21 @@
-// Drawing from the Sunrise Sunset API
-// https://sunrise-sunset.org/api
-// Could also use MapQuest to do a location lookup:
+// SUNRISE/SUNSET. Copyright 2020. Richard Banks
+// See: http://www.mrmatsumoto.com/experiments/Sunrise/index.html
+// Drawing from the Sunrise Sunset API: https://sunrise-sunset.org/api
+// Could also (eventually) use MapQuest to do a location lookup:
 // https://developer.mapquest.com/documentation/geocoding-api/address/get/
 
+//#region *** GLOBAL VARIABLES ***
 
-var urls= [];
-var specialDays=[];
+var urls = [];
+var specialDays = [];
 var urlCount;
 var eachDay = [];
 var numberOfDays = 367;
 var morningLimit = 4;
 var eveningLimit = 22;
+var latitude = 51.391924;
+var longitude = -0.50365;
+// Seattle lat=47.60357lng=-122.32945
 var titleText = "CHERTSEY, SURREY, UK";
 var subTitleText = "Sunrise & Sunsets in 2021";
 var todaysDate;
@@ -24,7 +29,7 @@ var weatherScale = 5;
 var hourSeconds = 60 * 60;
 var sunriseHour = 0;
 var sunsetHour = 0;
-var noonPosition = (hourSeconds*12)/lineScale;
+var noonPosition = (hourSeconds * 12) / lineScale;
 
 // Colours
 var colorBackground;
@@ -61,20 +66,30 @@ var strokeWeightHoursNoon = 0.5;
 var strokeWeightNewHourCircle = 1;
 var strokeWeightSpecialDayCircle = 1;
 var strokeWeightDefault = 3;
-var strokeWeightSpecialDayConnectionLine = .5;
-var strokeWeightNewHourConnectionLine = .5;
+var strokeWeightSpecialDayConnectionLine = 0.5;
+var strokeWeightNewHourConnectionLine = 0.5;
 
 // Circle Sizes
 var circleSizeSpecialDay = 6;
 var circleSizeNewHour = 6;
 
+//#endregion
+
+// *** SETUP ***
+// ---------------------------------
+
+// Load the weather data
 function preload() {
-  // Load topics from a JSON file
-  var url =
-   'http://www.mrmatsumoto.com/experiments/Sunrise/weatherArray.json';// https://www.visualcrossing.com/weather/weather-data-services
-  dataWeather = loadJSON(url,loadedEntities);
+  // I've downloaded one year's weather data for Chertsey from https://www.visualcrossing.com/weather/weather-data-services
+  // into a weatherArray.json.  Data columns in the JSON file are: Name,	Period,	Maximum Temperature,	Minimum Temperature,	Temperature,	Wind Chill,
+  // Heat Index,	Precipitation,	Snow,	Snow Depth,	Wind Speed, Wind Gust,	Visibility,
+  // Cloud Cover, Relative Humidity, Contributing Stations
+  // Load the weather into dataWeather
+  var url = "weatherArray.json";
+  dataWeather = loadJSON(url, loadedEntities);
 }
 
+// Verify the weather data is loaded
 function loadedEntities() {
   weatherLoaded = true;
 }
@@ -82,82 +97,93 @@ function loadedEntities() {
 function setup() {
   // Get the sunrise/Sunset details based on the latitude and longitude of Chertsey
   frameRate(30);
-  createCanvas(2000, windowHeight);
+  createCanvas(2000, 850);
 
   todaysDate = moment();
 
+  //#region Colors
   // Setup colors http://designermag.org/wp-content/uploads/2014/02/CSS-Colors.jpg
-  colorBackground = color('steelblue');//180
-  colorHoursText = color('white');
-  colorHoursLine = color('white');
+  colorBackground = color("steelblue"); //180
+  colorHoursText = color("white");
+  colorHoursLine = color("white");
   colorWeekdayLines = color(220);
-  colorWeekendLines = color('white');
-  colorNewMonthText = color('white');
-  colorNewMonthLine = color('white');
-  colorSunriseNewHourText = color('yellow');
-  colorSunriseNewHourLine = color('yellow');
+  colorWeekendLines = color("white");
+  colorNewMonthText = color("white");
+  colorNewMonthLine = color("white");
+  colorSunriseNewHourText = color("yellow");
+  colorSunriseNewHourLine = color("yellow");
   colorSunsetNewHourText = colorSunriseNewHourText;
   colorSunsetNewHourLine = colorSunriseNewHourLine;
-  colorSpecialDayText = color('paleturquoise');//lime
-  colorSpecialDayLine = color('paleturquoise');
-  colorTitleText = color('white');
-  colorTodayLine = color('red');
-  colorMaxTemp = color('darkorange');
-  colorMinTemp = color('aqua');
-  colorAvgTemp = color('mediumorchid');
+  colorSpecialDayText = color("paleturquoise"); //lime
+  colorSpecialDayLine = color("paleturquoise");
+  colorTitleText = color("white");
+  colorTodayLine = color("red");
+  colorMaxTemp = color("darkorange");
+  colorMinTemp = color("aqua");
+  colorAvgTemp = color("mediumorchid");
+  //#endregion
 
+  //#region Special Days
   //Set up special days ✨⛪★☃ https://www.utf8icons.com/subsets/miscellaneous-symbols
-  specialDays.push(new specialDay('09-29', 'Michaelmas', '🕭', 35));
-  specialDays.push(new specialDay('03-25', 'Lady Day', '🕭', 35));
-  specialDays.push(new specialDay('06-20', 'Summer Solstice', '★', null));
-  specialDays.push(new specialDay('12-21', 'Winter Solstice', '★', 25));
-  specialDays.push(new specialDay('03-20', 'Spring Equinox', '★', 25));
-  specialDays.push(new specialDay('09-22', 'Vernal Equinox', '★', 12));
-  specialDays.push(new specialDay('12-25', 'Christmas Day', '☃', 70));
-  specialDays.push(new specialDay('12-19', 'Sunday Before Christmas', '☃', 55));
-  specialDays.push(new specialDay('01-03', 'Sarah', '♫', 40));
-  specialDays.push(new specialDay('01-11', 'Meg', '♫', 25));
-  specialDays.push(new specialDay('02-20', 'Malcolm', '♫', 25));
-  specialDays.push(new specialDay('04-20', 'Richard', '♫', 20));
-  specialDays.push(new specialDay('07-18', 'Shannon', '♫', 25));
-  specialDays.push(new specialDay('12-19', 'Maddie', '♫', 40));
-  specialDays.push(new specialDay('02-14', 'Valentine', '♡', 60));
-  specialDays.push(new specialDay('02-02', 'Groundhog Day', '🐿', 40));
-  specialDays.push(new specialDay('07-04', 'July 4th', '⚐', 40));
+  specialDays.push(new specialDay("09-29", "Michaelmas", "🕭", 35));
+  specialDays.push(new specialDay("03-25", "Lady Day", "🕭", 35));
+  specialDays.push(new specialDay("06-20", "Summer Solstice", "★", null));
+  specialDays.push(new specialDay("12-21", "Winter Solstice", "★", 25));
+  specialDays.push(new specialDay("03-20", "Spring Equinox", "★", 25));
+  specialDays.push(new specialDay("09-22", "Vernal Equinox", "★", 12));
+  specialDays.push(new specialDay("12-25", "Christmas Day", "☃", 70));
+  specialDays.push(new specialDay("12-19", "Sunday Before Christmas", "☃", 55));
+  specialDays.push(new specialDay("01-03", "Sarah", "♫", 40));
+  specialDays.push(new specialDay("01-11", "Meg", "♫", 25));
+  specialDays.push(new specialDay("02-20", "Malcolm", "♫", 25));
+  specialDays.push(new specialDay("04-20", "Richard", "♫", 20));
+  specialDays.push(new specialDay("07-18", "Shannon", "♫", 25));
+  specialDays.push(new specialDay("12-19", "Maddie", "♫", 40));
+  specialDays.push(new specialDay("02-14", "Valentine", "♡", 60));
+  specialDays.push(new specialDay("02-02", "Groundhog Day", "🐿", 40));
+  specialDays.push(new specialDay("07-04", "July 4th", "⚐", 40));
+  //#endregion
 
-
-  // Set up an array of URLS for the days I want sunset data for
+  // Set up an array of URLS for the days I want sunset/sunrise data for
   // This is currently every day of the year from January 1st
 
   for (let i = 1; i < numberOfDays; i++) {
-    var date = moment().dayOfYear(i).format('YYYY-MM-DD');
-    urls.push('https://api.sunrise-sunset.org/json?lat=51.391924&lng=-0.50365&date=' + date + '&formatted=0'); //Chertsey
-    //urls.push('https://api.sunrise-sunset.org/json?lat=47.60357&lng=-122.32945&date=' + i + '&formatted=0'); //Seattle
+    var date = moment().dayOfYear(i).format("YYYY-MM-DD");
+    urls.push(
+      "https://api.sunrise-sunset.org/json?lat=" +
+        latitude +
+        "&lng=" +
+        longitude +
+        "&date=" +
+        date +
+        "&formatted=0"
+    );
   }
+
   urlCount = urls.length;
 
   var url = urls.shift();
-  httpGet(url, 'jsonp', false, resultFromCall);
-
+  httpGet(url, "jsonp", false, resultFromCall); // Kick off getting data for the first URL
 }
 
+// Called every time sunrise/sunset data is returned from the web service
 function resultFromCall(response) {
   // when the HTTP request completes, populate the variable that holds the
   // sunrise and sunset data used in the visualization.
   sunriseSunset = response;
   eachDay.push(new dayData(response.results.sunrise, response.results.sunset));
-  if (urls.length > 0){
+  if (urls.length > 0) {
     var url = urls.shift();
-    httpGet(url, 'jsonp', false, resultFromCall);
+    httpGet(url, "jsonp", false, resultFromCall);
   }
-
 }
 
-function draw() {
+// *** DRAW ***
+//------------------------------------------
 
+function draw() {
   background(colorBackground);
   var numberOfElement = 0;
-
 
   //Draw title
   noStroke();
@@ -173,232 +199,306 @@ function draw() {
   text(subTitleText, 60, 90);
 
   //draw horizontal timelines
-  for (let i = morningLimit; i < eveningLimit+1; i++) {
+  for (let i = morningLimit; i < eveningLimit + 1; i++) {
     noStroke();
     fill(colorHoursText);
     textAlign(RIGHT, CENTER);
     textSize(textSizeHours);
-    var hourText = str_pad_left(i,0,2) + ':00';
-    var hourLineY = (hourSeconds*i)/lineScale;
-    text(hourText,45,hourLineY);
-  
+    var hourText = str_pad_left(i, 0, 2) + ":00";
+    var hourLineY = (hourSeconds * i) / lineScale;
+    text(hourText, 45, hourLineY);
+
     stroke(colorHoursLine);
-    if (i === 12) {strokeWeight(strokeWeightHoursNoon);}
-    else {strokeWeight(strokeWeightHours);}
+    if (i === 12) {
+      strokeWeight(strokeWeightHoursNoon);
+    } else {
+      strokeWeight(strokeWeightHours);
+    }
     line(50, hourLineY, width, hourLineY);
   }
 
-  //draw weather markers
-  // Data columns: Name,	Period,	Maximum Temperature,	Minimum Temperature,	Temperature,	Wind Chill,	
-  // Heat Index,	Precipitation,	Snow,	Snow Depth,	Wind Speed, Wind Gust,	Visibility,	
-  // Cloud Cover, Relative Humidity, Contributing Stations
-
+  //draw temperature markers at left
   textAlign(RIGHT, CENTER);
-  text("-10", 80, noonPosition - (-10 * weatherScale));
-  text("0", 80, noonPosition - (0 * weatherScale));
-  text("10", 80, noonPosition - (10 * weatherScale));
-  text("20", 80, noonPosition - (20 * weatherScale));
+  text("-10 ℃", 80, noonPosition - -10 * weatherScale);
+  text("0 ℃", 80, noonPosition - 0 * weatherScale);
+  text("10 ℃", 80, noonPosition - 10 * weatherScale);
+  text("20 ℃", 80, noonPosition - 20 * weatherScale);
 
   //Repeat for each day
-  eachDay.forEach(element => {
+  eachDay.forEach((element) => {
+    var elementX = numberOfElement * daySeparation + offsetX;
 
-    var elementX = (numberOfElement * daySeparation) +offsetX;
+    // Figure out the time of the sunrise and sunset in seconds 
+    var sunriseSeconds =
+      element.sunrise.hours() * 3600 +
+      element.sunrise.minutes() * 60 +
+      element.sunrise.seconds();
+    var sunsetSeconds =
+      element.sunset.hours() * 3600 +
+      element.sunset.minutes() * 60 +
+      element.sunset.seconds();
 
-    var sunriseSeconds = element.sunrise.hours()*3600 + element.sunrise.minutes() * 60 + element.sunrise.seconds();
-    var sunsetSeconds = element.sunset.hours()*3600 + element.sunset.minutes() * 60 + element.sunset.seconds();
-
-    //Is today the beginning of a new month?
+    //Is today the beginning of a new month? If so, mark it
     var dayOfTheMonth = element.sunrise.date();
     if (dayOfTheMonth === 1) {
       stroke(colorNewMonthLine);
       strokeWeight(strokeWeightMonth);
-      ellipse(elementX, (hourSeconds*12)/lineScale, 3);
-      line(elementX, (hourSeconds*22.1)/lineScale, elementX, (hourSeconds*3.9)/lineScale);
+      ellipse(elementX, (hourSeconds * 12) / lineScale, 3);
+      line(
+        elementX,
+        (hourSeconds * 22.1) / lineScale,
+        elementX,
+        (hourSeconds * 3.9) / lineScale
+      );
 
-      noStroke();   
+      noStroke();
       fill(colorNewMonthText);
       textAlign(CENTER, BOTTOM);
       textSize(textSizeMonths);
-      text(element.sunrise.format('MMM').toUpperCase() , elementX, (hourSeconds*3.8)/lineScale);
+      text(
+        element.sunrise.format("MMM").toUpperCase(),
+        elementX,
+        (hourSeconds * 3.8) / lineScale
+      );
     }
 
     //Draw default line for this day
     strokeWeight(strokeWeightDefault);
 
+    // Is it a Saturday or Sunday? If so, make the bars a different colour
     var dayOfTheWeek = element.sunrise.day();
- 
-    if (element.sunrise.format('YYYY MM DD') === todaysDate.format('YYYY MM DD')){
+
+    if (
+      element.sunrise.format("YYYY MM DD") === todaysDate.format("YYYY MM DD")
+    ) {
       stroke(colorTodayLine);
-    }
-    else if (dayOfTheWeek === 0 || dayOfTheWeek === 6) {
+    } else if (dayOfTheWeek === 0 || dayOfTheWeek === 6) {
       stroke(colorWeekendLines);
-    } else{
+    } else {
       stroke(colorWeekdayLines);
     }
 
-    line(elementX, sunriseSeconds/lineScale, elementX, sunsetSeconds/lineScale);
+    // Draw vertical lines for sunrise/sunset period
+    line(
+      elementX,
+      sunriseSeconds / lineScale,
+      elementX,
+      sunsetSeconds / lineScale
+    );
 
     // SUNRISE?
-    // Is today's sunrise in a new hour?
-    if (sunriseHour != element.sunrise.hour() && numberOfElement!=0){
+    // Is today's sunrise in a new hour? If so, mark the day of the month
+    if (sunriseHour != element.sunrise.hour() && numberOfElement != 0) {
       stroke(colorBackground);
       fill(colorSunriseNewHourLine);
       strokeWeight(strokeWeightNewHourCircle);
-      circle(elementX,sunriseSeconds/lineScale, circleSizeNewHour);
+      circle(elementX, sunriseSeconds / lineScale, circleSizeNewHour);
 
       noStroke();
       fill(colorSunriseNewHourText);
       textAlign(CENTER, BOTTOM);
       textSize(textSizeNewHour);
-      var newY = (sunriseSeconds/lineScale) - 5;
-      text('☀ ' + element.sunrise.format("Do"), elementX, newY);
+      var newY = sunriseSeconds / lineScale - 5;
+      text("☀ " + element.sunrise.format("Do"), elementX, newY);
 
       stroke(colorSunriseNewHourLine);
       strokeWeight(strokeWeightNewHourConnectionLine);
-      line(elementX,sunriseSeconds/lineScale,elementX, newY);
+      line(elementX, sunriseSeconds / lineScale, elementX, newY);
 
       sunriseHour = element.sunrise.hour();
-    } else{
+    } else {
       sunriseHour = element.sunrise.hour();
     }
 
     // SUNSET?
-    // Is today's sunset in a new hour?
-    if (sunsetHour != element.sunset.hour() && numberOfElement!=0){
+    // Is today's sunset in a new hour? If so, mark the day of the month
+    if (sunsetHour != element.sunset.hour() && numberOfElement != 0) {
       stroke(colorBackground);
       fill(colorSunsetNewHourLine);
       strokeWeight(strokeWeightNewHourCircle);
-      circle(elementX,sunsetSeconds/lineScale, circleSizeNewHour);
-      
+      circle(elementX, sunsetSeconds / lineScale, circleSizeNewHour);
+
       noStroke();
       fill(colorSunsetNewHourText);
       textAlign(CENTER, TOP);
       textSize(textSizeNewHour);
-      text('☽ ' + element.sunset.format("Do"), elementX, (sunsetSeconds/lineScale) + 8);
+      text(
+        "☽ " + element.sunset.format("Do"),
+        elementX,
+        sunsetSeconds / lineScale + 8
+      );
 
       stroke(colorSunriseNewHourLine);
       strokeWeight(strokeWeightNewHourConnectionLine);
-      line(elementX,sunsetSeconds/lineScale,elementX, (sunsetSeconds/lineScale) + 7);
+      line(
+        elementX,
+        sunsetSeconds / lineScale,
+        elementX,
+        sunsetSeconds / lineScale + 7
+      );
 
       sunsetHour = element.sunset.hour();
-    }else{
+    } else {
       sunsetHour = element.sunset.hour();
     }
 
     // SPECIAL?
-    // Is today a special day?
-    specialDays.forEach(elementSpecialDay => {
-      if (element.sunset.format("MM-DD") === elementSpecialDay.date){
+    // Is today a special day? If so, mark it with the special day attributes
+    specialDays.forEach((elementSpecialDay) => {
+      if (element.sunset.format("MM-DD") === elementSpecialDay.date) {
         stroke(colorBackground);
         fill(colorSpecialDayLine);
         strokeWeight(strokeWeightSpecialDayCircle);
-        circle(elementX,sunriseSeconds/lineScale, circleSizeSpecialDay);
+        circle(elementX, sunriseSeconds / lineScale, circleSizeSpecialDay);
 
         noStroke();
         fill(colorSpecialDayText);
         textAlign(CENTER, BOTTOM);
         textSize(textSizeSpecialDay);
-        var newY = (sunriseSeconds/lineScale) - elementSpecialDay.offset;
-        text(elementSpecialDay.icon + ' ' + elementSpecialDay.name, elementX, newY);
+        var newY = sunriseSeconds / lineScale - elementSpecialDay.offset;
+        text(
+          elementSpecialDay.icon + " " + elementSpecialDay.name,
+          elementX,
+          newY
+        );
 
         stroke(colorSpecialDayLine);
         strokeWeight(strokeWeightSpecialDayConnectionLine);
-        line(elementX,sunriseSeconds/lineScale,elementX, newY);
+        line(elementX, sunriseSeconds / lineScale, elementX, newY);
       }
     });
 
     // WEATHER
-    // Draw weather marks
-    if (weatherLoaded){
-      print(numberOfElement);
+    // Draw temperature lines
+    if (weatherLoaded) {
       var maxToday = dataWeather[numberOfElement][2];
       var minToday = dataWeather[numberOfElement][3];
       var avgToday = dataWeather[numberOfElement][4];
-      drawWeatherBands(maxToday, minToday , avgToday, elementX);
+      drawWeatherBands(maxToday, minToday, avgToday, elementX);
     }
 
     numberOfElement++;
-
   });
-
 }
 
-function mouseClicked(event){
-  saveCanvas('sunRiseSet', 'png');
+// *** EVENTS ***
+// --------------------------------------------------
+
+// EVENT keyReleased
+function keyReleased() {
+  // Save the page as an image if the user hits the S key
+  if (key == "s" || key == "S") saveCanvas("flocking", "png");
 }
 
-// DRAW WEATHER BANDS
-// Figure out the weather bands of colour based on the maximum and minimum
-function drawWeatherBands(max, min, avg, x){
+// *** UTILITIES ***
+// ------------------------------------------
 
-  var coloursSection = ['red', 'orangered','orange','gold','yellow','lime','green','royalblue','blue','mediumpurple'];
+// Figure out the weather bands of colour based on the maximum and minimum temperature for the day
+function drawWeatherBands(max, min, avg, x) {
+  var coloursSection = [
+    "red",
+    "orangered",
+    "orange",
+    "gold",
+    "yellow",
+    "lime",
+    "green",
+    "royalblue",
+    "blue",
+    "mediumpurple",
+  ];
   var currentTemp = 40.0;
   var avgColour;
 
   strokeCap(SQUARE);
 
-
   for (var section = 0; section < 10; section++) {
     noFill();
     stroke(color(coloursSection[section]));
     strokeWeight(strokeWeightDefault);
-    if(max > currentTemp && min < (currentTemp - 5.0)){
-      line(x, noonPosition - (currentTemp * weatherScale), x, noonPosition - ((currentTemp - 5.0) * weatherScale));
-    } else if (max <= currentTemp && max >= (currentTemp - 5.0)){
-      line(x, noonPosition - (max * weatherScale), x, noonPosition - ((currentTemp - 5.0) * weatherScale));
-    } else if (min <= currentTemp && min >= (currentTemp - 5.0)){
-      line(x, noonPosition - (currentTemp * weatherScale), x, noonPosition - (min * weatherScale));     
+    if (max > currentTemp && min < currentTemp - 5.0) {
+      line(
+        x,
+        noonPosition - currentTemp * weatherScale,
+        x,
+        noonPosition - (currentTemp - 5.0) * weatherScale
+      );
+    } else if (max <= currentTemp && max >= currentTemp - 5.0) {
+      line(
+        x,
+        noonPosition - max * weatherScale,
+        x,
+        noonPosition - (currentTemp - 5.0) * weatherScale
+      );
+    } else if (min <= currentTemp && min >= currentTemp - 5.0) {
+      line(
+        x,
+        noonPosition - currentTemp * weatherScale,
+        x,
+        noonPosition - min * weatherScale
+      );
     }
-  
-    if (avg <= currentTemp && avg >= (currentTemp-5)){
+
+    if (avg <= currentTemp && avg >= currentTemp - 5) {
       avgColour = color(coloursSection[section]);
     }
 
     currentTemp = currentTemp - 5.0;
   }
 
-  
-  fill('white');
+  fill("white");
   noStroke();
-  ellipse(x, noonPosition - (avg * weatherScale), 3);
+  ellipse(x, noonPosition - avg * weatherScale, 3);
 
   strokeCap(ROUND);
 }
 
-function secondsToHoursMinutesSeconds(differenceInSeconds){
+// Convert seconds into well formatted hours, minutes and seconds (HH:MM:SS) 
+function secondsToHoursMinutesSeconds(differenceInSeconds) {
   var hours = Math.floor(differenceInSeconds / 3600);
-  var minutes = Math.floor((differenceInSeconds - (hours * 3600)) / 60);
+  var minutes = Math.floor((differenceInSeconds - hours * 3600) / 60);
   var seconds = differenceInSeconds - minutes * 60 - hours * 3600;
- 
-  var hoursMinutesSeconds = '' + str_pad_left(hours, '0', 2) + ':' + str_pad_left(minutes, '0', 2) + ':' + str_pad_left(seconds, '0', 2);
+
+  var hoursMinutesSeconds =
+    "" +
+    str_pad_left(hours, "0", 2) +
+    ":" +
+    str_pad_left(minutes, "0", 2) +
+    ":" +
+    str_pad_left(seconds, "0", 2);
   return hoursMinutesSeconds;
 }
 
-function str_pad_left(string,pad,length) { // From https://stackoverflow.com/questions/3733227/javascript-seconds-to-minutes-and-seconds
-  return (new Array(length+1).join(pad)+string).slice(-length);
+// Pad out a string the way you want it e.g. convert 1 to 0001 
+function str_pad_left(string, pad, length) {
+  // From https://stackoverflow.com/questions/3733227/javascript-seconds-to-minutes-and-seconds
+  return (new Array(length + 1).join(pad) + string).slice(-length);
 }
 
+// *** CLASSES ***
+// -------------------------------------------
 
+// CLASS dayData
 class dayData {
-
   constructor(sunrise, sunset) {
     this.sunrise = moment(sunrise); // See: https://momentjs.com/docs/
     this.sunset = moment(sunset);
- 
+
     //var sunriseYear = this.sunrise.prototype.getFullYear();
-    this.dayLength = (this.sunset - this.sunrise)/1000;
+    this.dayLength = (this.sunset - this.sunrise) / 1000;
   }
 }
 
-class specialDay{
-  constructor(date, name, icon, offset){
+// CLASS specialDay
+class specialDay {
+  constructor(date, name, icon, offset) {
     this.date = date;
     this.name = name;
     this.icon = icon;
-    if (offset === null){
+    if (offset === null) {
       this.offset = 5;
     } else {
       this.offset = offset;
     }
   }
-}MA
+}
